@@ -14,7 +14,6 @@ def batchInsertFromJsonList(data_list: list[dict], table_name: str, conn) -> Non
 
     # 2. 튜플 리스트 준비 (executemany를 위해)
     data_to_insert = []
-    print(data_list)
     for item_dict in data_list:
         # 딕셔너리의 값을 SQL 쿼리 순서에 맞게 튜플로 만듭니다.
         row_tuple = (
