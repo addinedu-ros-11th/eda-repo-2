@@ -6,6 +6,7 @@ import json
 from dotenv import load_dotenv
 
 def generateCatId():
+    pass
 
 def fetchShoppingDataFromNaver(client_id, client_secret,startDate, endDate, timeUnit, categoryNameCodeList, device=None, ages=None, gender=None):
     
