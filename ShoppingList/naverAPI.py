@@ -14,6 +14,38 @@ from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 import time
 
+import pandas as pd
+
+def clickAndFindLoop(ind, ele, level, parent_id, driver):
+    cat = {}
+    cat['id']= int(ele['data-cid'])
+    cat['p_id'] = int(parent_id)
+    cat['name'] = ele.get_text()
+    cat['level'] = level
+    print(cat['id'], cat['p_id'], cat['name'], cat['level'])
+
+    # 1차 dropdown 열기
+    try:
+        span = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.XPATH, f'//*[@id="content"]/div[2]/div/div[1]/div/div/div[1]/div/div[{level}]/span'))
+            )
+        span.click()
+        # 1차 카테고리 선택
+        choose = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, f'//*[@id="content"]/div[2]/div/div[1]/div/div/div[1]/div/div[{level}]/ul/li[{ind+1}]/a'))
+        )
+        choose.click()
+        time.sleep(1)
+        #choose = WebDriverWait(driver, 10).until(EC.presence_of_all_elements_located((By.CLASS_NAME, 'select_list scroll_cst')))
+
+        next_soup = BeautifulSoup(driver.page_source, 'html.parser')
+        next_data = next_soup.find_all('div',  'set_period category')[0].find_all('ul', 'select_list scroll_cst')[level].find_all('a', 'option')
+    except:
+        next_data = None
+        print(next_data)
+    return cat, driver, next_data
+
+
 def generateCatId():
 
 
@@ -23,24 +55,53 @@ def generateCatId():
     
     datalab_url = 'https://datalab.naver.com/shoppingInsight/sCategory.naver'
     driver.get(datalab_url)
+    time.sleep(3)
 
     # first and second catid
-    first_element = WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.XPATH, '//*[@id="content"]/div[2]/div/div[1]/div/div/div[1]/div/div[1]/span'))
-    )
-    first_element.click()
+    
     first_soup = BeautifulSoup(driver.page_source, 'html.parser')
     first_data = first_soup.find_all('div',  'set_period category')[0].find_all('ul', 'select_list scroll_cst')[0].find_all('a', 'option')
-    first_cat = []
+    cat_list = []
+
     for i, ele in enumerate(first_data):
-        cat = {}
-        cat['id']= int(ele['data-cid'])
-        cat['p_id'] = 0
-        cat['name'] = ele.get_text()
-        print(cat['id'], cat['p_id'], cat['name'])
+        cat, driver, second_data = clickAndFindLoop(i, ele, level=1, parent_id=0, driver=driver)
+        cat1_id = cat['id']
+        cat_list.append(cat)
+
+        if second_data is not None:
+            for i1, ele1 in enumerate(second_data):
+                cat, driver, third_data = clickAndFindLoop(i1, ele1, 2, parent_id=cat1_id, driver=driver)
+                cat2_id = cat['id']
+                cat_list.append(cat)
+
+                if third_data is not None:
+                    for i2, ele2 in enumerate(third_data):
+                        cat, driver, fourth_data = clickAndFindLoop(i2, ele2, 3, parent_id=cat2_id, driver=driver)
+                        cat_list.append(cat)
+                        cat3_id = cat['id']
+
+                        if fourth_data is not None:
+                            for ele3 in fourth_data:
+                                cat = {}
+                                cat['id']= int(ele3['data-cid'])
+                                cat['p_id'] = cat3_id
+                                cat['name'] = ele3.get_text()
+                                cat['level'] = 4
+                                print(cat['id'], cat['p_id'], cat['name'])
+                                cat_list.append(cat)
+                        else:
+                            continue
+                else:
+                    continue
+        else:
+            continue
 
 
+
+            
     driver.quit()
+    return cat_list
+
 
 def fetchShoppingDataFromNaver(client_id, client_secret,startDate, endDate, timeUnit, categoryNameCodeList, device=None, ages=None, gender=None):
     
@@ -97,6 +158,8 @@ if __name__ == '__main__':
         ]
         fetchShoppingDataFromNaver(client_id,client_secret,"2025-10-02", "2025-10-09", "date",test_category_list)
     elif a ==1 :
-        generateCatId()
+        categoryList = generateCatId()
+        table = pd.DataFrame(categoryList)
+        table.to_json('ShoppingList/output/naverCategoryTable_temp.json')
     else:
         pass
