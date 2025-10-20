@@ -35,8 +35,7 @@ def clickAndFindLoop(ind, ele, level, parent_id, driver):
             EC.element_to_be_clickable((By.XPATH, f'//*[@id="content"]/div[2]/div/div[1]/div/div/div[1]/div/div[{level}]/ul/li[{ind+1}]/a'))
         )
         choose.click()
-        time.sleep(1)
-        #choose = WebDriverWait(driver, 10).until(EC.presence_of_all_elements_located((By.CLASS_NAME, 'select_list scroll_cst')))
+        time.sleep(0.5)
 
         next_soup = BeautifulSoup(driver.page_source, 'html.parser')
         next_data = next_soup.find_all('div',  'set_period category')[0].find_all('ul', 'select_list scroll_cst')[level].find_all('a', 'option')
@@ -158,8 +157,8 @@ if __name__ == '__main__':
         ]
         fetchShoppingDataFromNaver(client_id,client_secret,"2025-10-02", "2025-10-09", "date",test_category_list)
     elif a ==1 :
-        categoryList = generateCatId()
-        table = pd.DataFrame(categoryList)
-        table.to_json('ShoppingList/output/naverCategoryTable_temp.json')
+        catlist = generateCatId()
+        with open('ShoppingList/output/naverCategoryTable_temp.json', 'w', encoding='utf-8') as f:
+            json.dump(catlist, f, ensure_ascii=False, indent=4)
     else:
         pass
