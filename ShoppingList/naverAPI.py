@@ -102,7 +102,7 @@ def generateCatId():
     return cat_list
 
 
-def fetchShoppingDataFromNaver(client_id, client_secret,startDate, endDate, timeUnit, categoryNameCodeList, device=None, ages=None, gender=None):
+def fetchShoppingDataFromNaver(client_id, client_secret,startDate, endDate, timeUnit, categoryNameCodeList, file_name, device=None, ages=None, gender=None):
     
 
     #print(client_secret,client_id)
@@ -134,29 +134,43 @@ def fetchShoppingDataFromNaver(client_id, client_secret,startDate, endDate, time
         response_body = response.read()
         response_decoded = response_body.decode('utf-8')
         response_data = json.loads(response_decoded)
-        with open("ShoppingList/output/naver_result.json", "w", encoding='utf-8') as f:
+        with open(file_name, "w", encoding='utf-8') as f:
             json.dump(response_data, f, ensure_ascii=False, indent=4)
     else:
         print("Error Code:" + rescode)
 
+def listToCategoryDict(list):
+    res = [{"name":ele[1], "param":[str(ele[0])]} for ele in list]
+    return res
+
+def createTrendData(catlist):
+    pass
+
 if __name__ == '__main__':
 
-    a = 1
-
-    if a ==  0:
+    a = 0
+    
+    if a == 0:
         #example
         current_dir = os.path.dirname(os.path.abspath(__file__))
         dotenv_path = os.path.join(current_dir, '..', '.env')
         load_dotenv(dotenv_path=dotenv_path)
         client_id = os.getenv("NAVER_CLIENT_ID")
         client_secret = os.getenv("NAVER_CLIENT_SECRET")
-        test_category_list = [
-            {"name":"신선식품", "param": ["10000108"]}, 
-            {"name":"가공식품", "param": ["50000002"]},
-            {"name":"건강식품", "param": ["10000115"]}
-        ]
-        fetchShoppingDataFromNaver(client_id,client_secret,"2025-10-02", "2025-10-09", "date",test_category_list)
-    elif a ==1 :
+        # test_category_list = [
+        #     {"name":"신선식품", "param": ["10000108"]}, 
+        #     {"name":"가공식품", "param": ["50000002"]},
+        #     {"name":"건강식품", "param": ["10000115"]}
+        # ]
+        categroy_json = pd.read_json('ShoppingList/output/naverCategoryTable.json')
+        df_category = pd.DataFrame(categroy_json)
+        food = df_category[df_category['p_id'] == 50000006]
+        b = food[['id','name']].to_dict('tight')
+        test_category_list = listToCategoryDict(b['data'][:3]) # 총 3개까지만 가능
+        print(test_category_list)
+        fetchShoppingDataFromNaver(client_id,client_secret,"2025-10-02", "2025-10-09", "date", test_category_list, 'ShoppingList/output/naver_result.json')
+
+    elif a == 1:
         catlist = generateCatId()
         with open('ShoppingList/output/naverCategoryTable_temp.json', 'w', encoding='utf-8') as f:
             json.dump(catlist, f, ensure_ascii=False, indent=4)
