@@ -15,6 +15,7 @@ from bs4 import BeautifulSoup
 import time
 
 import pandas as pd
+import numpy as np
 
 def clickAndFindLoop(ind, ele, level, parent_id, driver):
     cat = {}
@@ -134,8 +135,11 @@ def fetchShoppingDataFromNaver(client_id, client_secret,startDate, endDate, time
         response_body = response.read()
         response_decoded = response_body.decode('utf-8')
         response_data = json.loads(response_decoded)
-        with open(file_name, "w", encoding='utf-8') as f:
-            json.dump(response_data, f, ensure_ascii=False, indent=4)
+        if file_name is not None:
+            with open(file_name, "w", encoding='utf-8') as f:
+                json.dump(response_data, f, ensure_ascii=False, indent=4)
+        #print(response_data)
+        return response_data
     else:
         print("Error Code:" + rescode)
 
@@ -143,36 +147,150 @@ def listToCategoryDict(list):
     res = [{"name":ele[1], "param":[str(ele[0])]} for ele in list]
     return res
 
-def createTrendData(catlist):
-    pass
+def extractHighestData(dict_data):
+    dict_data_result = dict_data['results']
+    a= {}
+    for i, data_list in enumerate(dict_data_result):
+        for j, data in enumerate(data_list['data']):
+            if data['ratio'] == 100:
+                a['category'] = data_list['category']
+                a['period'] = data['period']
+                a['ratio'] = data['ratio']
+                a['index'] = [i, j]
+                return a
+    print("can't find data which ratio is 100")
+    return 0
 
-if __name__ == '__main__':
+def getratio(pre_res, cur_dict_data, cur_index_of_pre: int):
+    ratio = cur_dict_data['results'][cur_index_of_pre]['data'][pre_res['index'][1]]
+    ratio = ratio['ratio']
+    #print(type(ratio))
+    return ratio
 
-    a = 0
+def compare_two_batches(pre_res: dict, cur_dict_data, cur_index_of_pre: int, cat_index: int, highest_cat_index: int):
+    highest_data = extractHighestData(cur_dict_data)
+    cur_high_cate = highest_data['category'][0]
+    multiplier = 1
+    if cur_high_cate != pre_res['category'][0]:
+        cur_ratio_of_pre_high_data = getratio(pre_res,cur_dict_data, cur_index_of_pre)
+        multiplier = cur_ratio_of_pre_high_data/100
+        highest_cat_index = cat_index
     
-    if a == 0:
+    return multiplier, highest_cat_index, highest_data
+
+def createTrendData(catlist, start_date, end_date):
+    global client_id, client_secret
+   
+    num_category = len(catlist)
+    cat_list_to_be_compared = []
+    num_batches = num_category-1
+    muliplier_list = [1. for i in range(num_category)]
+
+    # generate first batch
+    category_to_be_compared = [catlist[0],catlist[1]]
+    dict_data = fetchShoppingDataFromNaver(client_id, client_secret, start_date, end_date, "date", 
+                                   category_to_be_compared, None)
+    pre_res = extractHighestData(dict_data)
+    cat_list_to_be_compared.append(dict_data['results'][0])
+    cat_list_to_be_compared.append(dict_data['results'][1])
+    highest_cat_index = pre_res['index'][0]
+    cat_index = 2
+    batch_index = 1
+
+    # generate batches, update multiplier list and highest cat index
+    while batch_index < num_batches:
+        category_to_be_compared = [catlist[highest_cat_index],catlist[cat_index]]
+        dict_data = fetchShoppingDataFromNaver(client_id, client_secret, start_date, end_date, "date", 
+                                   category_to_be_compared, None)
+        cat_list_to_be_compared.append(dict_data['results'][1])
+
+        # compare two batches and update higeset_cat_index
+        multiply_const, highest_cat_index, pre_res = compare_two_batches(pre_res, dict_data, 0, cat_index, highest_cat_index)
+        if multiply_const != 1:
+            temp_muliplier_list = [x*multiply_const for x in muliplier_list[:highest_cat_index]]
+            muliplier_list[:highest_cat_index] = temp_muliplier_list
+
+        batch_index += 1
+        cat_index += 1
+
+    # multiply obtained multiply list to cat list
+    for i, cat_dic_data in enumerate(cat_list_to_be_compared):
+        multiply_const = muliplier_list[i]
+        for data_per_period in cat_dic_data['data']:
+            data_per_period['ratio']=data_per_period['ratio']*multiply_const
+    
+    return cat_list_to_be_compared
+    
+    
+
+
+
+        
+    
+
+if __name__ == '__main__': # Examples
+
+    a = 3
+    
+    if a == 0: # naver api에서 트렌드 가져오기 테스트
         #example
         current_dir = os.path.dirname(os.path.abspath(__file__))
         dotenv_path = os.path.join(current_dir, '..', '.env')
         load_dotenv(dotenv_path=dotenv_path)
         client_id = os.getenv("NAVER_CLIENT_ID")
         client_secret = os.getenv("NAVER_CLIENT_SECRET")
-        # test_category_list = [
-        #     {"name":"신선식품", "param": ["10000108"]}, 
-        #     {"name":"가공식품", "param": ["50000002"]},
-        #     {"name":"건강식품", "param": ["10000115"]}
-        # ]
-        categroy_json = pd.read_json('ShoppingList/output/naverCategoryTable.json')
-        df_category = pd.DataFrame(categroy_json)
-        food = df_category[df_category['p_id'] == 50000006]
-        b = food[['id','name']].to_dict('tight')
-        test_category_list = listToCategoryDict(b['data'][:3]) # 총 3개까지만 가능
-        print(test_category_list)
-        fetchShoppingDataFromNaver(client_id,client_secret,"2025-10-02", "2025-10-09", "date", test_category_list, 'ShoppingList/output/naver_result.json')
+        test_category_list = [
+            {"name":"신선식품", "param": ["10000108"]}, 
+            {"name":"가공식품", "param": ["50000002"]},
+            {"name":"건강식품", "param": ["10000115"]}
+        ]
+        fetchShoppingDataFromNaver(client_id,client_secret,
+                                   "2025-10-02", 
+                                   "2025-10-09", 
+                                   "date", 
+                                   test_category_list, 
+                                   'ShoppingList/output/example1.json')
 
-    elif a == 1:
+    elif a == 1: # 카테고리 리스트 가져오기
         catlist = generateCatId()
         with open('ShoppingList/output/naverCategoryTable_temp.json', 'w', encoding='utf-8') as f:
             json.dump(catlist, f, ensure_ascii=False, indent=4)
-    else:
-        pass
+
+    elif a ==2:
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        dotenv_path = os.path.join(current_dir, '..', '.env')
+        load_dotenv(dotenv_path=dotenv_path)
+        client_id = os.getenv("NAVER_CLIENT_ID")
+        client_secret = os.getenv("NAVER_CLIENT_SECRET")
+
+        categroy_json = pd.read_json('ShoppingList/output/naverCategoryTable.json')
+        df_category = pd.DataFrame(categroy_json)
+        food = df_category[df_category['p_id'] == 50000006] # 음식 카테고리
+        b = food[['id','name']].to_dict('tight')
+        to_be_found = np.array(b['data'])
+        test_category_list = listToCategoryDict(to_be_found[[2,3,4]]) # 총 3개까지만 가능
+        print(test_category_list)
+        fetchShoppingDataFromNaver(client_id,client_secret,
+                                   "2025-10-02", 
+                                   "2025-10-09", 
+                                   "date",
+                                    test_category_list, 
+                                    'ShoppingList/output/example3.json')
+        
+    elif a == 3:
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        dotenv_path = os.path.join(current_dir, '..', '.env')
+        load_dotenv(dotenv_path=dotenv_path)
+        client_id = os.getenv("NAVER_CLIENT_ID")
+        client_secret = os.getenv("NAVER_CLIENT_SECRET")
+
+        categroy_json = pd.read_json('ShoppingList/output/naverCategoryTable.json')
+        df_category = pd.DataFrame(categroy_json)
+        food = df_category[df_category['p_id'] == 50000006] # 음식 카테고리
+        b = food[['id','name']].to_dict('tight')
+        to_be_found = np.array(b['data'])
+        test_category_list = listToCategoryDict(to_be_found) # 총 3개까지만 가능
+        print(len(test_category_list))
+        res = createTrendData(test_category_list, "2025-10-02", "2025-10-09")
+        print(res)
+
