@@ -102,7 +102,6 @@ def generateCatId():
     driver.quit()
     return cat_list
 
-
 def fetchShoppingDataFromNaver(client_id, client_secret,startDate, endDate, timeUnit, categoryNameCodeList, file_name, device=None, ages=None, gender=None):
     
 
@@ -218,8 +217,15 @@ def createTrendData(catlist, start_date, end_date):
         multiply_const = muliplier_list[i]
         for data_per_period in cat_dic_data['data']:
             data_per_period['ratio']=data_per_period['ratio']*multiply_const
+
+    res = {}
+    res['startdate'] = start_date
+    res['enddate'] = end_date
+    res['datalist'] = cat_list_to_be_compared
     
-    return cat_list_to_be_compared
+
+    
+    return res
     
     
 
@@ -292,5 +298,5 @@ if __name__ == '__main__': # Examples
         test_category_list = listToCategoryDict(to_be_found) # 총 3개까지만 가능
         print(len(test_category_list))
         res = createTrendData(test_category_list, "2025-10-02", "2025-10-09")
-        print(res)
-
+        with open('ShoppingList/output/res_temp.json', 'w', encoding='utf-8') as f:
+            json.dump(res, f, ensure_ascii=False, indent=4)
