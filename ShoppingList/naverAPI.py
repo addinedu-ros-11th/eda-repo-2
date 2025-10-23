@@ -178,8 +178,7 @@ def compare_two_batches(pre_res: dict, cur_dict_data, cur_index_of_pre: int, cat
     
     return multiplier, highest_cat_index, highest_data
 
-def createTrendData(catlist, start_date, end_date):
-    global client_id, client_secret
+def createTrendData(client_id, client_secret, catlist, start_date, end_date):
    
     num_category = len(catlist)
     cat_list_to_be_compared = []
@@ -221,7 +220,6 @@ def createTrendData(catlist, start_date, end_date):
     
     return cat_list_to_be_compared
     
-    
 
 
 
@@ -256,7 +254,7 @@ if __name__ == '__main__': # Examples
         with open('ShoppingList/output/naverCategoryTable_temp.json', 'w', encoding='utf-8') as f:
             json.dump(catlist, f, ensure_ascii=False, indent=4)
 
-    elif a ==2:
+    elif a ==2: #기존 api
         current_dir = os.path.dirname(os.path.abspath(__file__))
         dotenv_path = os.path.join(current_dir, '..', '.env')
         load_dotenv(dotenv_path=dotenv_path)
@@ -277,7 +275,7 @@ if __name__ == '__main__': # Examples
                                     test_category_list, 
                                     'ShoppingList/output/example3.json')
         
-    elif a == 3:
+    elif a == 3: #개선된 api
         current_dir = os.path.dirname(os.path.abspath(__file__))
         dotenv_path = os.path.join(current_dir, '..', '.env')
         load_dotenv(dotenv_path=dotenv_path)
@@ -289,8 +287,8 @@ if __name__ == '__main__': # Examples
         food = df_category[df_category['p_id'] == 50000006] # 음식 카테고리
         b = food[['id','name']].to_dict('tight')
         to_be_found = np.array(b['data'])
-        test_category_list = listToCategoryDict(to_be_found) # 총 3개까지만 가능
+        test_category_list = listToCategoryDict(to_be_found)
         print(len(test_category_list))
-        res = createTrendData(test_category_list, "2025-10-02", "2025-10-09")
+        res = createTrendData(client_id, client_secret,test_category_list, "2025-10-02", "2025-10-09")
         print(res)
 
