@@ -177,7 +177,7 @@ def compare_two_batches(pre_res: dict, cur_dict_data, cur_index_of_pre: int, cat
     
     return multiplier, highest_cat_index, highest_data
 
-def createTrendData(client_id, client_secret, catlist, start_date, end_date):
+def createTrendData(client_id, client_secret, catlist, start_date, end_date, device = None, ages=None, gender=None):
    
     num_category = len(catlist)
     cat_list_to_be_compared = []
@@ -199,7 +199,7 @@ def createTrendData(client_id, client_secret, catlist, start_date, end_date):
     while batch_index < num_batches:
         category_to_be_compared = [catlist[highest_cat_index],catlist[cat_index]]
         dict_data = fetchShoppingDataFromNaver(client_id, client_secret, start_date, end_date, "date", 
-                                   category_to_be_compared, None)
+                                   category_to_be_compared, None, device,ages,gender)
         cat_list_to_be_compared.append(dict_data['results'][1])
 
         # compare two batches and update higeset_cat_index
