@@ -187,7 +187,7 @@ def createTrendData(client_id, client_secret, catlist, start_date, end_date, dev
     # generate first batch
     category_to_be_compared = [catlist[0],catlist[1]]
     dict_data = fetchShoppingDataFromNaver(client_id, client_secret, start_date, end_date, "date", 
-                                   category_to_be_compared, None)
+                                   category_to_be_compared, None, device, ages, gender)
     pre_res = extractHighestData(dict_data)
     cat_list_to_be_compared.append(dict_data['results'][0])
     cat_list_to_be_compared.append(dict_data['results'][1])
@@ -214,8 +214,10 @@ def createTrendData(client_id, client_secret, catlist, start_date, end_date, dev
     # multiply obtained multiply list to cat list
     for i, cat_dic_data in enumerate(cat_list_to_be_compared):
         multiply_const = muliplier_list[i]
-        for data_per_period in cat_dic_data['data']:
-            data_per_period['ratio']=data_per_period['ratio']*multiply_const
+        # for data_per_period in cat_dic_data['data']:
+        #     data_per_period['ratio']=data_per_period['ratio']*multiply_const
+        for i in range(len(cat_dic_data['data'])):
+            cat_dic_data['data'][i]['ratio'] = cat_dic_data['data'][i]['ratio']*multiply_const
 
     res = {}
     res['startdate'] = start_date
