@@ -8,7 +8,7 @@ def batchInsertFromJsonList(data_list: list[dict], table_name: str, conn) -> Non
     
     cursor = conn.cursor(buffered=True)
     sql = f"""
-        INSERT INTO {table_name} (cat_id, p_id, cat_name, cat_level)
+        INSERT INTO {table_name} (cat_id, parent_id, title, level)
         VALUES (%s, %s, %s, %s)
     """
 
@@ -62,5 +62,5 @@ if __name__ == '__main__':
     
     
     # 삽입할 딕셔너리 리스트 예시
-    batchInsertFromJsonList(data_list, "naver_shopping_category", db_connection)
+    batchInsertFromJsonList(data_list, "n_sp_category", db_connection)
     db_connection.close()
