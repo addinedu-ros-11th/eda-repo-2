@@ -120,7 +120,6 @@ def fetchShoppingDataFromNaver(client_id, client_secret,startDate, endDate, time
         body_dict["ages"] = ages
     if gender is not None and gender != "":
         body_dict["gender"] = gender
-
     body = json.dumps(body_dict)
 
     request = urllib.request.Request(url)
@@ -185,6 +184,8 @@ def createTrendData(client_id, client_secret, catlist, start_date, end_date, dev
     muliplier_list = [1. for i in range(num_category)]
 
     # generate first batch
+    if catlist[0]['name'] == catlist[1]['name']:
+        catlist[1]['name'] = catlist[1]['name'] + '0'
     category_to_be_compared = [catlist[0],catlist[1]]
     dict_data = fetchShoppingDataFromNaver(client_id, client_secret, start_date, end_date, "date", 
                                    category_to_be_compared, None, device, ages, gender)
@@ -197,6 +198,8 @@ def createTrendData(client_id, client_secret, catlist, start_date, end_date, dev
 
     # generate batches, update multiplier list and highest cat index
     while batch_index < num_batches:
+        if catlist[highest_cat_index]['name'] == catlist[cat_index]['name']:
+            cat_index[cat_index]['name'] =  cat_index[cat_index]['name'] + '0'
         category_to_be_compared = [catlist[highest_cat_index],catlist[cat_index]]
         dict_data = fetchShoppingDataFromNaver(client_id, client_secret, start_date, end_date, "date", 
                                    category_to_be_compared, None, device,ages,gender)
